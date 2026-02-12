@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Produção + OS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Segoe UI,system-ui,sans-serif;background:#f1f5f9;min-height:100vh;color:#1e293b;font-size:13px}
+.header{background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#334155 100%);padding:20px 24px;color:#fff}
+.header-inner{max-width:1600px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header h1{font-size:22px;font-weight:800}
+.header-sub{font-size:12px;opacity:0.6;margin-top:2px}
+.header-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:10px 18px;border-radius:10px;border:none;font-weight:600;cursor:pointer;font-size:13px;transition:all 0.2s}
+.btn-primary{background:#3b82f6;color:#fff}
+.btn-primary:hover{background:#2563eb}
+.btn-secondary{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.btn-secondary:hover{background:rgba(255,255,255,0.2)}
+.btn-success{background:#10b981;color:#fff}
+.btn-warning{background:#f59e0b;color:#fff}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-outline{background:transparent;border:1.5px solid #e2e8f0;color:#475569}
+.btn-outline:hover{background:#f8fafc}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:12px;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,0.1)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#10b981}
+.sync-dot.offline{background:#ef4444}
+.sync-dot.syncing{background:#f59e0b;animation:pulse 0.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.container{max-width:1600px;margin:0 auto;padding:20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:#fff;padding:16px 18px;border-radius:14px;border:1px solid #e5e7eb;position:relative;overflow:hidden}
+.kpi-icon{position:absolute;top:-5px;right:-5px;font-size:40px;opacity:0.08}
+.kpi-label{font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;letter-spacing:0.5px}
+.kpi-value{font-size:28px;font-weight:800;margin-top:4px}
+.kpi-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.filters{background:#fff;border-radius:14px;padding:14px 18px;margin-bottom:16px;border:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.search-box{flex:1;min-width:200px;position:relative}
+.search-box input{width:100%;padding:10px 12px 10px 38px;border-radius:10px;border:1.5px solid #e5e7eb;font-size:13px}
+.search-box span{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:0.4}
+.filter-select{padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;font-size:12px;font-weight:600;cursor:pointer}
+.view-btns{display:flex;gap:4px;background:#f1f5f9;padding:4px;border-radius:10px}
+.view-btn{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:#64748b}
+.view-btn.active{background:#fff;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.card{background:#fff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;margin-bottom:20px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:10px 8px;text-align:left;background:#f8fafc;font-size:9px;text-transform:uppercase;color:#64748b;font-weight:700;border-bottom:2px solid #e5e7eb;white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+tr:hover{background:#f8fafc}
+.table-footer{padding:12px 16px;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8}
+.days-badge{background:#dbeafe;color:#2563eb;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.os-link{background:#f0fdf4;color:#16a34a;padding:4px 10px;border-radius:6px;font-weight:700;cursor:pointer;font-size:11px;border:1px solid #bbf7d0}
+.os-link:hover{background:#dcfce7}
+.kanban{display:flex;gap:12px;overflow-x:auto;padding-bottom:16px}
+.kanban-col{min-width:260px;max-width:280px;background:#fff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;flex-shrink:0}
+.kanban-header{padding:12px 14px;border-bottom:3px solid;display:flex;justify-content:space-between;align-items:center}
+.kanban-body{padding:10px;max-height:400px;overflow-y:auto}
+.kanban-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer}
+.kanban-card:hover{border-color:#cbd5e1}
+.flow-section{background:#fff;border-radius:14px;border:1px solid #e5e7eb;padding:20px;margin-bottom:16px}
+.flow-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.flow-steps{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.flow-step{min-width:130px;padding:16px;border-radius:12px;text-align:center;border:2px solid}
+.flow-arrow{font-size:20px;color:#cbd5e1;display:flex;align-items:center}
+.alert-box{background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:14px;margin-top:16px}
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.client-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(2px)}
+.modal{background:#fff;border-radius:16px;width:95%;max-width:750px;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,0.3)}
+.modal-header{padding:20px 24px;border-bottom:1px solid #e5e7eb;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:10}
+.modal-header h2{font-size:18px;font-weight:700}
+.modal-body{padding:20px 24px}
+.modal-footer{padding:16px 24px;border-top:1px solid #e5e7eb;display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff}
+.close-btn{background:#f1f5f9;border:none;width:36px;height:36px;border-radius:10px;font-size:20px;cursor:pointer;color:#64748b;display:flex;align-items:center;justify-content:center}
+.close-btn:hover{background:#e2e8f0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group{margin-bottom:14px}
+.form-group.mb-0{margin-bottom:0}
+.form-label{display:block;font-size:11px;font-weight:600;color:#475569;margin-bottom:5px}
+.form-input{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px}
+.form-input:focus{outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1)}
+.form-input-sm{padding:7px 9px;font-size:12px}
+.form-readonly{background:#f1f5f9;color:#64748b}
+.section{background:#f8fafc;border-radius:10px;padding:16px;margin:16px 0;border:1px solid #e2e8f0}
+.section-title{font-size:13px;font-weight:700;color:#475569;margin-bottom:12px}
+.item-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.item-row input{flex:1}
+.btn-remove{background:#fee2e2;color:#dc2626;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px}
+.btn-remove:hover{background:#fecaca}
+.btn-add{background:#eff6ff;color:#3b82f6;border:1.5px dashed #93c5fd;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;width:100%;margin-top:8px}
+.btn-add:hover{background:#dbeafe}
+.total-row{text-align:right;font-weight:700;font-size:14px;margin-top:10px;color:#1e293b}
+.print-area{padding:30px}
+.print-header{display:flex;justify-content:space-between;border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:20px}
+.print-num{font-size:28px;font-weight:900}
+.print-info{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:24px}
+.print-info dt{font-size:11px;color:#64748b;text-transform:uppercase}
+.print-info dd{font-size:14px;font-weight:600;margin:0 0 10px}
+.print-table{width:100%;border-collapse:collapse;margin:12px 0 20px}
+.print-table th{background:#f5f5f5;padding:10px 12px;text-align:left;border:1px solid #ddd;font-size:11px;text-transform:uppercase}
+.print-table td{padding:10px 12px;border:1px solid #ddd}
+.print-obs{background:#fffbeb;border:1px solid #fcd34d;padding:14px;border-radius:8px;margin-top:20px;font-size:13px}
+.print-sig{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:40px}
+.print-sig-line{border-top:1px solid #1e293b;padding-top:8px;text-align:center;font-size:11px;color:#64748b}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000}
+.loading-spinner{width:50px;height:50px;border:4px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:10px;color:#fff;font-weight:600;z-index:3000;animation:slideIn 0.3s ease}
+.toast-success{background:#10b981}
+.toast-error{background:#ef4444}
+.toast-warning{background:#f59e0b}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none!important}
+@media(max-width:768px){.form-row,.form-row-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div><div style="margin-top:16px;font-weight:600;color:#475569">Carregando dados...</div></div>
+<div class="header"><div class="header-inner"><div><h1>🏭 Controle de Produção</h1><div class="header-sub">Gestão de ordens + OS • <span id="totalHeader">0</span> itens • Última sync: <span id="lastSync">--</span></div></div><div class="header-btns"><div class="sync-status"><div class="sync-dot" id="syncDot"></div><span id="syncText">Online</span></div><button class="btn btn-secondary" onclick="sincronizarManual()">🔄 Atualizar</button><button class="btn btn-secondary" onclick="exportarCSV()">📥 Exportar</button><button class="btn btn-primary" onclick="abrirNovaOS()">📝 Nova OS + Ordem</button></div></div></div>
+<div class="container">
+<div class="kpis"><div class="kpi"><div class="kpi-icon">📋</div><div class="kpi-label">Total Ordens</div><div class="kpi-value" id="kpiTotal">0</div></div><div class="kpi"><div class="kpi-icon">🔴</div><div class="kpi-label">A Produzir</div><div class="kpi-value" id="kpiProduzir" style="color:#ef4444">0</div><div class="kpi-sub">Aguardando início</div></div><div class="kpi"><div class="kpi-icon">⚙️</div><div class="kpi-label">Em Produção</div><div class="kpi-value" id="kpiEmProd" style="color:#3b82f6">0</div><div class="kpi-sub">Produção + Pintura</div></div><div class="kpi"><div class="kpi-icon">🚫</div><div class="kpi-label">Bloqueados</div><div class="kpi-value" id="kpiBloq" style="color:#f97316">0</div><div class="kpi-sub">Pendências</div></div><div class="kpi"><div class="kpi-icon">✅</div><div class="kpi-label">Finalizados</div><div class="kpi-value" id="kpiFinal" style="color:#10b981">0</div><div class="kpi-sub">Entrega/Instalação</div></div><div class="kpi"><div class="kpi-icon">📝</div><div class="kpi-label">OS Emitidas</div><div class="kpi-value" id="kpiOS" style="color:#8b5cf6">0</div></div></div>
+<div class="filters"><div class="search-box"><span>🔍</span><input type="text" id="searchInput" placeholder="Buscar cliente, produto, OS..." oninput="renderizar()"></div><select class="filter-select" id="filterSituacao" onchange="renderizar()"></select><select class="filter-select" id="filterCliente" onchange="renderizar()"></select><div class="view-btns"><button class="view-btn active" id="btnTabela" onclick="setView('tabela')">📋 Tabela</button><button class="view-btn" id="btnKanban" onclick="setView('kanban')">📊 Kanban</button><button class="view-btn" id="btnFluxo" onclick="setView('fluxo')">📈 Fluxo</button></div></div>
+<div id="viewTabela"></div><div id="viewKanban" class="hidden"></div><div id="viewFluxo" class="hidden"></div>
+</div>
+
+<!-- Modal Nova/Editar OS -->
+<div class="modal-bg hidden" id="modalOS" onclick="fecharModalOS()"><div class="modal" onclick="event.stopPropagation()"><div class="modal-header"><h2 id="modalOSTitle">📝 Nova Ordem de Serviço</h2><button class="close-btn" onclick="fecharModalOS()">✕</button></div><div class="modal-body">
+<div class="form-row">
+  <div class="form-group mb-0"><label class="form-label">Nº da OS</label><input class="form-input" id="osNumero" readonly style="font-weight:700;font-size:16px;background:#f8fafc"></div>
+  <div class="form-group mb-0"><label class="form-label">Cliente</label><input class="form-input" id="osCliente" list="listaClientes" placeholder="Digite ou selecione"><datalist id="listaClientes"></datalist></div>
+</div>
+<div class="form-row">
+  <div class="form-group mb-0"><label class="form-label">Situação</label><select class="form-input" id="osSituacao"></select></div>
+  <div class="form-group mb-0"><label class="form-label">Profissional Responsável</label><input class="form-input" id="osProfissional" placeholder="Nome do responsável"></div>
+</div>
+<div class="section"><div class="section-title">📦 Produtos</div><div id="produtosLista"></div><button class="btn-add" onclick="addProduto()">+ Adicionar Produto</button><div class="total-row">Total: <span id="produtoTotal">0</span> un</div></div>
+<div class="section"><div class="section-title">🧱 Lista de Materiais <span style="font-weight:400;color:#94a3b8">(sem preços)</span></div><div id="materiaisLista"></div><button class="btn-add" onclick="addMaterial()">+ Adicionar Material</button></div>
+<div class="form-row"><div class="form-group mb-0"><label class="form-label">Data de Início</label><input class="form-input" id="osDataInicio" placeholder="Preencher quando iniciar"></div><div class="form-group mb-0"><label class="form-label">Previsão de Baixa</label><input class="form-input" id="osDataBaixa" placeholder="Preencher depois"></div></div>
+<div class="form-group" style="margin-top:14px"><label class="form-label">Observações</label><textarea class="form-input" id="osObs" rows="2" placeholder="Instruções, detalhes técnicos..." style="resize:vertical"></textarea></div>
+</div><div class="modal-footer"><button class="btn btn-outline" onclick="fecharModalOS()">Cancelar</button><button class="btn btn-primary" onclick="salvarOS()">💾 Salvar OS</button></div></div></div>
+
+<!-- Modal Editar Ordem -->
+<div class="modal-bg hidden" id="modalEdit" onclick="fecharModalEdit()"><div class="modal" style="max-width:800px" onclick="event.stopPropagation()"><div class="modal-header"><h2>✏️ Editar Ordem</h2><button class="close-btn" onclick="fecharModalEdit()">✕</button></div><div class="modal-body"><div class="form-row"><div class="form-group mb-0"><label class="form-label">Cliente</label><input class="form-input" id="editCliente" list="listaClientes"></div><div class="form-group mb-0"><label class="form-label">Produto</label><input class="form-input" id="editProduto"></div></div><div class="form-row" style="margin-top:14px"><div class="form-group mb-0"><label class="form-label">Quantidade</label><input class="form-input" id="editQtd" type="number"></div><div class="form-group mb-0"><label class="form-label">Situação</label><select class="form-input" id="editSituacao"></select></div></div><div class="form-row" style="margin-top:14px"><div class="form-group mb-0"><label class="form-label">Data Fechamento</label><input class="form-input" id="editFech" placeholder="dd/mmm"></div><div class="form-group mb-0"><label class="form-label">Profissional</label><input class="form-input" id="editProf"></div></div><div class="section"><div class="section-title">⚙️ Etapas de Produção</div><div class="form-row-3"><div class="form-group mb-0"><label class="form-label">Entrada Prod.</label><input class="form-input form-input-sm" id="editEntProd" placeholder="dd/mmm" oninput="calcularDiasProd()"></div><div class="form-group mb-0"><label class="form-label">Saída Prod.</label><input class="form-input form-input-sm" id="editSaiProd" placeholder="dd/mmm" oninput="calcularDiasProd()"></div><div class="form-group mb-0"><label class="form-label">Dias Trab.</label><input class="form-input form-input-sm form-readonly" id="editDiasProd" readonly></div></div><div class="form-row" style="margin-top:10px"><div class="form-group mb-0"><label class="form-label">Entrada Pintura</label><input class="form-input form-input-sm" id="editEntPint" placeholder="dd/mmm"></div><div class="form-group mb-0"><label class="form-label">Saída Pintura</label><input class="form-input form-input-sm" id="editSaiPint" placeholder="dd/mmm"></div></div><div class="form-row-3" style="margin-top:10px"><div class="form-group mb-0"><label class="form-label">Entrada Instalação</label><input class="form-input form-input-sm" id="editEntInst" placeholder="dd/mmm" oninput="calcularDiasInst()"></div><div class="form-group mb-0"><label class="form-label">Saída Instalação</label><input class="form-input form-input-sm" id="editSaiInst" placeholder="dd/mmm" oninput="calcularDiasInst()"></div><div class="form-group mb-0"><label class="form-label">Dias Trab.</label><input class="form-input form-input-sm form-readonly" id="editDiasInst" readonly></div></div></div><div class="form-group"><label class="form-label">Observação</label><textarea class="form-input" id="editObs" rows="2"></textarea></div><div id="editOSInfo" class="hidden" style="padding:14px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><span style="font-weight:600;color:#16a34a">✅ Esta ordem possui OS: </span><span id="editOSNum" style="font-weight:700"></span></div><div style="display:flex;gap:8px"><button class="btn btn-sm btn-warning" onclick="editarOSdaOrdem()">✏️ Editar OS</button><button class="btn btn-sm btn-success" onclick="verOSdoEdit()">👁️ Ver OS</button></div></div></div><div id="editNoOS" class="hidden" style="padding:14px;background:#fefce8;border-radius:10px;border:1px solid #fde047"><span style="color:#a16207">⚠️ Esta ordem não possui OS.</span><button class="btn btn-sm btn-primary" style="margin-left:10px" onclick="criarOSparaOrdem()">+ Criar OS</button></div></div><div class="modal-footer"><button class="btn btn-danger btn-sm" onclick="excluirOrdem()">🗑️ Excluir</button><div style="flex:1"></div><button class="btn btn-outline" onclick="fecharModalEdit()">Cancelar</button><button class="btn btn-primary" onclick="salvarEdicao()">💾 Salvar</button></div></div></div>
+
+<!-- Modal Ver OS -->
+<div class="modal-bg hidden" id="modalPrint" onclick="fecharPrint()"><div class="modal" style="max-width:700px" onclick="event.stopPropagation()"><div class="modal-header"><h2>📄 Ordem de Serviço</h2><div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="fecharPrint()">✕ Fechar</button><button class="btn btn-primary btn-sm" onclick="imprimirOS()">🖨️ Imprimir</button></div></div><div class="print-area" id="printArea"></div></div></div>
+
+<div id="toastContainer"></div>
+
+<script>
+var JSONBIN_API_KEY='$2a$10$kzv9sdc0Qx4Pl5DTyB6WB.O6wjxTCcy51HnDghEE55bavmyRSeO7a';
+var JSONBIN_BIN_ID='6989f792ae596e708f1dc34f';
+var JSONBIN_URL='https://api.jsonbin.io/v3/b/'+JSONBIN_BIN_ID;
+
+var SITUACOES=[
+  {id:'A PRODUZIR',cor:'#ef4444',bg:'#fef2f2',icone:'🔴'},
+  {id:'MEDIR',cor:'#f59e0b',bg:'#fffbeb',icone:'📐'},
+  {id:'EM PRODUÇÃO',cor:'#3b82f6',bg:'#eff6ff',icone:'⚙️'},
+  {id:'PINTURA',cor:'#8b5cf6',bg:'#f5f3ff',icone:'🎨'},
+  {id:'PRODUZIDO PENDENTE ENTREGA',cor:'#06b6d4',bg:'#ecfeff',icone:'📦'},
+  {id:'PRODUZIDO PENDENTE INSTALAÇÃO',cor:'#0891b2',bg:'#ecfeff',icone:'🔧'},
+  {id:'PRODUZIDO E ENTREGUE',cor:'#10b981',bg:'#ecfdf5',icone:'✅'},
+  {id:'PENDENTE MATERIAL',cor:'#f97316',bg:'#fff7ed',icone:'🧱'},
+  {id:'PARADO',cor:'#6b7280',bg:'#f9fafb',icone:'⏸️'},
+  {id:'PARADO PENDENTE MATERIAL',cor:'#dc2626',bg:'#fef2f2',icone:'🚫'},
+  {id:'PARADO PENDENTE OBRA',cor:'#b91c1c',bg:'#fef2f2',icone:'🏗️'}
+];
+
+var CLIENTES=["Akropolis","Alliance Bahay","Alliance Blue","Alliance Nai","Alta","Arena Beach","Assembleia","Bahari","Bauten","Bismarke","Carlos construtor","Cicera","Cícera","Citta","Comtermica","EA Construtora","Elite Cursos","Elo Construção","Eugênia","Granfer","Hit","Honda","Hortus","Hortus CG","Hospital Memo","Jonas Andrade","Js Comercio","JS extintores","Laercio","LCA","Leidemar","Marbello","Massai","Matheus","OAB","Oncovida","PH Construções","Poliedro","Redebella CG"];
+var BLOQUEADOS=['PENDENTE MATERIAL','PARADO','PARADO PENDENTE MATERIAL','PARADO PENDENTE OBRA'];
+
+var ordens=[];
+var proximoId=1;
+var proximaOS=1001;
+var viewAtual='tabela';
+var editandoId=null;
+var editandoOSId=null;
+var modoOS='novo';
+var isSaving=false;
+var lastServerUpdate=0;
+
+// Toast notifications
+function showToast(msg,type){
+  var t=document.createElement('div');
+  t.className='toast toast-'+(type||'success');
+  t.textContent=msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(function(){t.remove();},3000);
+}
+
+function setSyncStatus(s){
+  var d=document.getElementById('syncDot');
+  var t=document.getElementById('syncText');
+  d.className='sync-dot';
+  if(s==='online'){t.textContent='Online';}
+  else if(s==='syncing'){d.classList.add('syncing');t.textContent='Sincronizando...';}
+  else{d.classList.add('offline');t.textContent='Offline';}
+}
+
+function updateLastSync(){
+  document.getElementById('lastSync').textContent=new Date().toLocaleTimeString('pt-BR');
+}
+
+// CARREGAR DADOS - SÓ ATUALIZA SE SERVIDOR TIVER DADOS MAIS NOVOS
+function carregarDados(cb, forcarAtualizacao){
+  setSyncStatus('syncing');
+  var x=new XMLHttpRequest();
+  x.timeout=15000;
+  x.open('GET',JSONBIN_URL+'/latest',true);
+  x.setRequestHeader('X-Master-Key',JSONBIN_API_KEY);
+  x.onreadystatechange=function(){
+    if(x.readyState===4){
+      document.getElementById('loadingOverlay').classList.add('hidden');
+      if(x.status===200){
+        try{
+          var r=JSON.parse(x.responseText).record;
+          if(r && r.ordens){
+            var serverTime = r.lastUpdate || 0;
+            // Só atualiza se: forçado OU servidor tem dados mais novos OU é primeira carga
+            if(forcarAtualizacao || serverTime > lastServerUpdate || ordens.length === 0){
+              ordens = r.ordens;
+              proximoId = r.proximoId || 1;
+              proximaOS = r.proximaOS || 1001;
+              lastServerUpdate = serverTime;
+              popularSelects();
+              renderizar();
+            }
+          }
+          setSyncStatus('online');
+          updateLastSync();
+          if(cb)cb(true);
+        }catch(e){
+          console.error('Erro parse:',e);
+          setSyncStatus('offline');
+          if(cb)cb(false);
+        }
+      }else{
+        setSyncStatus('offline');
+        if(cb)cb(false);
+      }
+    }
+  };
+  x.ontimeout=x.onerror=function(){
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    setSyncStatus('offline');
+    if(cb)cb(false);
+  };
+  x.send();
+}
+
+// SALVAR DADOS - SEMPRE ENVIA PRO SERVIDOR
+function salvarDados(cb){
+  if(isSaving){
+    setTimeout(function(){salvarDados(cb);},500);
+    return;
+  }
+  isSaving=true;
+  setSyncStatus('syncing');
+  
+  // Atualiza timestamp
+  var agora = Date.now();
+  lastServerUpdate = agora;
+  
+  var d={
+    ordens:ordens,
+    proximoId:proximoId,
+    proximaOS:proximaOS,
+    lastUpdate:agora
+  };
+  
+  // Backup local
+  try{localStorage.setItem('prod_backup_v3',JSON.stringify(d));}catch(e){}
+  
+  var x=new XMLHttpRequest();
+  x.timeout=15000;
+  x.open('PUT',JSONBIN_URL,true);
+  x.setRequestHeader('Content-Type','application/json');
+  x.setRequestHeader('X-Master-Key',JSONBIN_API_KEY);
+  x.onreadystatechange=function(){
+    if(x.readyState===4){
+      isSaving=false;
+      if(x.status===200){
+        setSyncStatus('online');
+        updateLastSync();
+        showToast('Salvo com sucesso!','success');
+        if(cb)cb(true);
+      }else{
+        setSyncStatus('offline');
+        showToast('Erro ao salvar - tente novamente','error');
+        if(cb)cb(false);
+      }
+    }
+  };
+  x.ontimeout=x.onerror=function(){
+    isSaving=false;
+    setSyncStatus('offline');
+    showToast('Sem conexão - dados salvos localmente','warning');
+    if(cb)cb(false);
+  };
+  x.send(JSON.stringify(d));
+}
+
+// Sincronização manual - FORÇA atualização do servidor
+function sincronizarManual(){
+  showToast('Buscando dados do servidor...','warning');
+  carregarDados(function(ok){
+    if(ok){
+      showToast('Dados atualizados!','success');
+    }else{
+      showToast('Erro ao atualizar','error');
+    }
+  }, true); // true = forçar atualização
+}
+
+// Carregar do localStorage como backup
+function carregarLocal(){
+  try{
+    var d=localStorage.getItem('prod_backup_v3');
+    if(d){
+      var p=JSON.parse(d);
+      ordens=p.ordens||[];
+      proximoId=p.proximoId||1;
+      proximaOS=p.proximaOS||1001;
+      lastServerUpdate=p.lastUpdate||0;
+    }
+  }catch(e){}
+}
+
+function init(){
+  // Primeiro tenta carregar local (mais rápido)
+  carregarLocal();
+  popularSelects();
+  renderizar();
+  
+  // Depois busca do servidor
+  carregarDados(function(){}, true);
+  
+  // NÃO FAZ SYNC AUTOMÁTICO - só manual pelo botão
+  // Isso evita sobrescrever dados que o usuário está editando
+  
+  // Detecta quando volta online
+  window.addEventListener('online',function(){
+    showToast('Conexão restaurada!','success');
+    setSyncStatus('online');
+  });
+  window.addEventListener('offline',function(){
+    setSyncStatus('offline');
+    showToast('Sem conexão','warning');
+  });
+  
+  // Salva local antes de fechar
+  window.addEventListener('beforeunload',function(){
+    try{
+      localStorage.setItem('prod_backup_v3',JSON.stringify({
+        ordens:ordens,
+        proximoId:proximoId,
+        proximaOS:proximaOS,
+        lastUpdate:lastServerUpdate
+      }));
+    }catch(e){}
+  });
+}
+
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function getSituacao(id){for(var i=0;i<SITUACOES.length;i++){if(SITUACOES[i].id===id)return SITUACOES[i];}return{id:id,cor:'#6b7280',bg:'#f3f4f6',icone:'❓'};}
+function badge(sit){var s=getSituacao(sit);return'<span class="badge" style="background:'+s.bg+';color:'+s.cor+'">'+s.icone+' '+esc(sit.length>15?sit.substring(0,13)+'..':sit)+'</span>';}
+
+function calcularDiasUteis(di,df){
+  if(!di||!df)return'';
+  var m={jan:0,fev:1,mar:2,abr:3,mai:4,jun:5,jul:6,ago:7,set:8,out:9,nov:10,dez:11};
+  var p1=di.split('/'),p2=df.split('/');
+  if(p1.length<2||p2.length<2)return'';
+  var m1=m[p1[1].toLowerCase()],m2=m[p2[1].toLowerCase()];
+  if(m1===undefined||m2===undefined)return'';
+  var d1=new Date(2025,m1,parseInt(p1[0])),d2=new Date(2025,m2,parseInt(p2[0]));
+  if(isNaN(d1)||isNaN(d2))return'';
+  var dias=0,at=new Date(d1);
+  while(at<=d2){if(at.getDay()!==0&&at.getDay()!==6)dias++;at.setDate(at.getDate()+1);}
+  return dias;
+}
+function calcularDiasProd(){var e=document.getElementById('editEntProd').value,s=document.getElementById('editSaiProd').value,d=calcularDiasUteis(e,s);document.getElementById('editDiasProd').value=d?d+' dias':'';}
+function calcularDiasInst(){var e=document.getElementById('editEntInst').value,s=document.getElementById('editSaiInst').value,d=calcularDiasUteis(e,s);document.getElementById('editDiasInst').value=d?d+' dias':'';}
+
+function popularSelects(){
+  // Filtro situação
+  var ss=document.getElementById('filterSituacao');
+  var se=document.getElementById('editSituacao');
+  var so=document.getElementById('osSituacao');
+  
+  ss.innerHTML='<option value="">📊 Todas Situações</option>';
+  se.innerHTML='';
+  so.innerHTML='';
+  
+  for(var i=0;i<SITUACOES.length;i++){
+    var opt=SITUACOES[i].icone+' '+SITUACOES[i].id;
+    ss.innerHTML+='<option value="'+esc(SITUACOES[i].id)+'">'+opt+'</option>';
+    se.innerHTML+='<option value="'+esc(SITUACOES[i].id)+'">'+opt+'</option>';
+    so.innerHTML+='<option value="'+esc(SITUACOES[i].id)+'">'+opt+'</option>';
+  }
+  
+  // Clientes
+  var tc=CLIENTES.slice();
+  for(var j=0;j<ordens.length;j++){
+    if(ordens[j].cliente&&tc.indexOf(ordens[j].cliente)===-1)tc.push(ordens[j].cliente);
+  }
+  tc.sort();
+  
+  var sc=document.getElementById('filterCliente');
+  sc.innerHTML='<option value="">👤 Todos Clientes</option>';
+  for(var k=0;k<tc.length;k++){
+    sc.innerHTML+='<option value="'+esc(tc[k])+'">'+esc(tc[k])+'</option>';
+  }
+  
+  var dl=document.getElementById('listaClientes');
+  dl.innerHTML='';
+  for(var l=0;l<tc.length;l++){
+    dl.innerHTML+='<option value="'+esc(tc[l])+'">';
+  }
+}
+
+function getOrdensFiltradas(){
+  var b=document.getElementById('searchInput').value.toLowerCase();
+  var fs=document.getElementById('filterSituacao').value;
+  var fc=document.getElementById('filterCliente').value;
+  var r=[];
+  for(var i=0;i<ordens.length;i++){
+    var o=ordens[i];
+    if(fs&&o.situacao!==fs)continue;
+    if(fc&&o.cliente!==fc)continue;
+    if(b){
+      var t=(o.cliente+' '+o.produto+' '+(o.osNum||'')+' '+(o.observacao||'')).toLowerCase();
+      if(t.indexOf(b)===-1)continue;
+    }
+    r.push(o);
+  }
+  return r;
+}
+
+function renderizar(){atualizarKPIs();renderTabela();renderKanban();renderFluxo();}
+
+function atualizarKPIs(){
+  document.getElementById('totalHeader').textContent=ordens.length;
+  document.getElementById('kpiTotal').textContent=ordens.length;
+  var ap=0,ep=0,bl=0,fn=0,os=0;
+  for(var i=0;i<ordens.length;i++){
+    var o=ordens[i];
+    if(o.situacao==='A PRODUZIR')ap++;
+    if(o.situacao==='EM PRODUÇÃO'||o.situacao==='PINTURA')ep++;
+    if(BLOQUEADOS.indexOf(o.situacao)!==-1)bl++;
+    if(o.situacao==='PRODUZIDO PENDENTE ENTREGA'||o.situacao==='PRODUZIDO PENDENTE INSTALAÇÃO'||o.situacao==='PRODUZIDO E ENTREGUE')fn++;
+    if(o.osNum)os++;
+  }
+  document.getElementById('kpiProduzir').textContent=ap;
+  document.getElementById('kpiEmProd').textContent=ep;
+  document.getElementById('kpiBloq').textContent=bl;
+  document.getElementById('kpiFinal').textContent=fn;
+  document.getElementById('kpiOS').textContent=os;
+}
+
+function renderTabela(){
+  var l=getOrdensFiltradas();
+  var h='<div class="card"><div class="table-wrap"><table><thead><tr><th>Cliente</th><th>Produto</th><th>Qtd</th><th>Situação</th><th>OS</th><th>Fech.</th><th>Ent.Prod</th><th>Saí.Prod</th><th>Dias</th><th>Ent.Pint</th><th>Saí.Pint</th><th>Ent.Inst</th><th>Saí.Inst</th><th>Dias</th><th>Prof.</th><th>Obs.</th><th></th></tr></thead><tbody>';
+  if(l.length===0){
+    h+='<tr><td colspan="17" style="text-align:center;padding:40px;color:#94a3b8">Nenhuma ordem encontrada</td></tr>';
+  }else{
+    for(var i=0;i<l.length;i++){
+      var o=l[i],s=getSituacao(o.situacao);
+      var oc=o.osNum?'<span class="os-link" onclick="event.stopPropagation();verOS('+o.id+')">'+esc(o.osNum)+'</span>':'<span style="color:#cbd5e1">—</span>';
+      var dp=calcularDiasUteis(o.entradaProd,o.saidaProd);
+      var di=calcularDiasUteis(o.entradaInst,o.saidaInst);
+      h+='<tr style="border-left:3px solid '+s.cor+';cursor:pointer" onclick="abrirEdicao('+o.id+')">';
+      h+='<td><strong>'+esc(o.cliente)+'</strong></td>';
+      h+='<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis">'+esc(o.produto)+'</td>';
+      h+='<td><strong>'+o.quantidade+'</strong></td>';
+      h+='<td>'+badge(o.situacao)+'</td>';
+      h+='<td>'+oc+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.dataFechamento||'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.entradaProd||'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.saidaProd||'')+'</td>';
+      h+='<td>'+(dp?'<span class="days-badge">'+dp+'d</span>':'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.entradaPint||'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.saidaPint||'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.entradaInst||'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.saidaInst||'')+'</td>';
+      h+='<td>'+(di?'<span class="days-badge">'+di+'d</span>':'')+'</td>';
+      h+='<td style="font-size:11px">'+esc(o.profissional||'')+'</td>';
+      h+='<td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;font-size:11px;color:#64748b" title="'+esc(o.observacao||'')+'">'+esc(o.observacao||'')+'</td>';
+      h+='<td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();abrirEdicao('+o.id+')">✏️</button></td>';
+      h+='</tr>';
+    }
+  }
+  h+='</tbody></table></div><div class="table-footer">Mostrando '+l.length+' de '+ordens.length+' ordens</div></div>';
+  document.getElementById('viewTabela').innerHTML=h;
+}
+
+function renderKanban(){
+  var l=getOrdensFiltradas(),g={};
+  for(var i=0;i<l.length;i++){var sit=l[i].situacao;if(!g[sit])g[sit]=[];g[sit].push(l[i]);}
+  var h='<div class="kanban">';
+  for(var j=0;j<SITUACOES.length;j++){
+    var s=SITUACOES[j],it=g[s.id]||[];
+    if(it.length===0)continue;
+    h+='<div class="kanban-col"><div class="kanban-header" style="border-bottom-color:'+s.cor+'"><span>'+s.icone+' '+esc(s.id.length>18?s.id.substring(0,16)+'...':s.id)+'</span><span class="badge" style="background:'+s.bg+';color:'+s.cor+'">'+it.length+'</span></div><div class="kanban-body">';
+    for(var k=0;k<it.length;k++){
+      var o=it[k];
+      h+='<div class="kanban-card" onclick="abrirEdicao('+o.id+')"><div style="font-weight:700;margin-bottom:4px">'+esc(o.produto)+'</div><div style="font-size:12px;color:#64748b;margin-bottom:6px">'+esc(o.cliente);
+      if(o.osNum)h+=' · <span style="color:#16a34a;font-weight:600">'+esc(o.osNum)+'</span>';
+      h+='</div><div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#94a3b8">Qtd: '+o.quantidade+'</span>';
+      if(o.profissional)h+='<span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px">'+esc(o.profissional)+'</span>';
+      h+='</div></div>';
+    }
+    h+='</div></div>';
+  }
+  h+='</div>';
+  document.getElementById('viewKanban').innerHTML=h;
+}
+
+function renderFluxo(){
+  var ct={};
+  for(var i=0;i<ordens.length;i++){var sit=ordens[i].situacao;ct[sit]=(ct[sit]||0)+1;}
+  var fs=['A PRODUZIR','EM PRODUÇÃO','PINTURA','PRODUZIDO PENDENTE ENTREGA','PRODUZIDO PENDENTE INSTALAÇÃO','PRODUZIDO E ENTREGUE'];
+  var h='<div class="flow-section"><div class="flow-title">📊 Fluxograma de Produção</div><div class="flow-steps">';
+  for(var j=0;j<fs.length;j++){
+    var s=getSituacao(fs[j]),c=ct[fs[j]]||0;
+    h+='<div class="flow-step" style="background:'+s.bg+';border-color:'+s.cor+'"><div style="font-size:24px">'+s.icone+'</div><div style="font-size:10px;font-weight:600;color:'+s.cor+';margin:4px 0">'+esc(fs[j].length>12?fs[j].substring(0,10)+'..':fs[j])+'</div><div style="font-size:24px;font-weight:900;color:'+s.cor+'">'+c+'</div></div>';
+    if(j<fs.length-1)h+='<div class="flow-arrow">→</div>';
+  }
+  h+='</div>';
+  
+  var tb=false;
+  for(var b=0;b<BLOQUEADOS.length;b++){if(ct[BLOQUEADOS[b]])tb=true;}
+  if(ct['MEDIR'])tb=true;
+  if(tb){
+    h+='<div class="alert-box"><div style="font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Itens Bloqueados</div><div style="display:flex;gap:10px;flex-wrap:wrap">';
+    var bl=BLOQUEADOS.concat(['MEDIR']);
+    for(var x=0;x<bl.length;x++){
+      var c2=ct[bl[x]]||0;
+      if(c2>0){var s2=getSituacao(bl[x]);h+='<span class="badge" style="background:#fff;border:1px solid '+s2.cor+';color:'+s2.cor+'">'+s2.icone+' '+c2+'</span>';}
+    }
+    h+='</div></div>';
+  }
+  h+='</div>';
+  
+  var pc={};
+  for(var c=0;c<ordens.length;c++){var cl=ordens[c].cliente;if(!pc[cl])pc[cl]=[];pc[cl].push(ordens[c]);}
+  var cls=Object.keys(pc).sort();
+  h+='<div class="flow-section"><div class="flow-title">👤 Resumo por Cliente</div><div class="client-grid">';
+  for(var cl=0;cl<cls.length;cl++){
+    var nm=cls[cl],ls=pc[nm],bc=0;
+    for(var y=0;y<ls.length;y++){if(BLOQUEADOS.indexOf(ls[y].situacao)!==-1)bc++;}
+    h+='<div class="client-card" style="background:'+(bc>0?'#fffbeb':'#f8fafc')+'"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><strong>'+esc(nm)+'</strong><span style="color:#94a3b8;font-size:12px">'+ls.length+' itens</span></div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+    for(var z=0;z<ls.length&&z<10;z++){var s3=getSituacao(ls[z].situacao);h+='<span style="width:18px;height:18px;border-radius:50%;background:'+s3.bg+';border:2px solid '+s3.cor+';display:inline-flex;align-items:center;justify-content:center;font-size:9px" title="'+esc(ls[z].situacao)+'">'+s3.icone+'</span>';}
+    if(ls.length>10)h+='<span style="font-size:11px;color:#94a3b8">+'+(ls.length-10)+'</span>';
+    h+='</div>';
+    if(bc>0)h+='<div style="margin-top:8px;font-size:11px;color:#f59e0b;font-weight:600">⚠️ '+bc+' bloqueado(s)</div>';
+    h+='</div>';
+  }
+  h+='</div></div>';
+  document.getElementById('viewFluxo').innerHTML=h;
+}
+
+function setView(v){
+  viewAtual=v;
+  document.getElementById('viewTabela').classList.toggle('hidden',v!=='tabela');
+  document.getElementById('viewKanban').classList.toggle('hidden',v!=='kanban');
+  document.getElementById('viewFluxo').classList.toggle('hidden',v!=='fluxo');
+  document.getElementById('btnTabela').classList.toggle('active',v==='tabela');
+  document.getElementById('btnKanban').classList.toggle('active',v==='kanban');
+  document.getElementById('btnFluxo').classList.toggle('active',v==='fluxo');
+}
+
+// === MODAL OS ===
+function abrirNovaOS(){
+  modoOS='novo';
+  editandoOSId=null;
+  document.getElementById('modalOSTitle').textContent='📝 Nova Ordem de Serviço';
+  document.getElementById('osNumero').value='OS-'+String(proximaOS).padStart(4,'0');
+  document.getElementById('osCliente').value='';
+  document.getElementById('osSituacao').value='A PRODUZIR';
+  document.getElementById('osDataInicio').value='';
+  document.getElementById('osDataBaixa').value='';
+  document.getElementById('osProfissional').value='';
+  document.getElementById('osObs').value='';
+  document.getElementById('produtosLista').innerHTML='';
+  document.getElementById('materiaisLista').innerHTML='';
+  addProduto();
+  addMaterial();
+  atualizarTotalProdutos();
+  document.getElementById('modalOS').classList.remove('hidden');
+}
+
+function fecharModalOS(){document.getElementById('modalOS').classList.add('hidden');}
+
+function addProduto(d,q){
+  var div=document.createElement('div');
+  div.className='item-row';
+  div.innerHTML='<input class="form-input form-input-sm" placeholder="Descrição do produto" value="'+esc(d||'')+'" oninput="atualizarTotalProdutos()"><input class="form-input form-input-sm" type="number" placeholder="Qtd" style="width:80px" value="'+(q||'')+'" oninput="atualizarTotalProdutos()"><button class="btn-remove" onclick="this.parentElement.remove();atualizarTotalProdutos()">✕</button>';
+  document.getElementById('produtosLista').appendChild(div);
+}
+
+function addMaterial(m,q,u){
+  var div=document.createElement('div');
+  div.className='item-row';
+  div.innerHTML='<input class="form-input form-input-sm" placeholder="Material" value="'+esc(m||'')+'"><input class="form-input form-input-sm" type="number" placeholder="Qtd" style="width:70px" value="'+esc(q||'')+'"><input class="form-input form-input-sm" placeholder="Un" style="width:60px" value="'+esc(u||'')+'"><button class="btn-remove" onclick="this.parentElement.remove()">✕</button>';
+  document.getElementById('materiaisLista').appendChild(div);
+}
+
+function atualizarTotalProdutos(){
+  var r=document.getElementById('produtosLista').querySelectorAll('.item-row'),t=0;
+  for(var i=0;i<r.length;i++){t+=parseInt(r[i].querySelectorAll('input')[1].value)||0;}
+  document.getElementById('produtoTotal').textContent=t;
+}
+
+function salvarOS(){
+  var cl=document.getElementById('osCliente').value.trim();
+  if(!cl){alert('Preencha o nome do cliente!');return;}
+  
+  var pr=document.getElementById('produtosLista').querySelectorAll('.item-row');
+  var prods=[],tq=0,nms=[];
+  for(var i=0;i<pr.length;i++){
+    var inp=pr[i].querySelectorAll('input');
+    var ds=inp[0].value.trim(),qt=parseInt(inp[1].value)||0;
+    if(ds){prods.push({descricao:ds,qtd:qt});tq+=qt;nms.push(ds);}
+  }
+  if(prods.length===0){alert('Adicione pelo menos um produto!');return;}
+  
+  var mr=document.getElementById('materiaisLista').querySelectorAll('.item-row');
+  var mats=[];
+  for(var j=0;j<mr.length;j++){
+    var mi=mr[j].querySelectorAll('input');
+    var mt=mi[0].value.trim();
+    if(mt){mats.push({material:mt,qtd:mi[1].value.trim(),unidade:mi[2].value.trim()});}
+  }
+  
+  var situacaoSelecionada = document.getElementById('osSituacao').value;
+  
+  var osD={
+    osNum:document.getElementById('osNumero').value,
+    osProdutos:prods,
+    osMateriais:mats,
+    osDataInicio:document.getElementById('osDataInicio').value,
+    osDataBaixa:document.getElementById('osDataBaixa').value,
+    osProfissional:document.getElementById('osProfissional').value,
+    osObs:document.getElementById('osObs').value
+  };
+  
+  var oid;
+  
+  if(modoOS==='editar'&&editandoOSId){
+    for(var k=0;k<ordens.length;k++){
+      if(ordens[k].id===editandoOSId){
+        ordens[k].cliente=cl;
+        ordens[k].produto=nms.join(' + ');
+        ordens[k].quantidade=tq;
+        ordens[k].situacao=situacaoSelecionada;
+        ordens[k].osProdutos=osD.osProdutos;
+        ordens[k].osMateriais=osD.osMateriais;
+        ordens[k].osDataInicio=osD.osDataInicio;
+        ordens[k].osDataBaixa=osD.osDataBaixa;
+        if(osD.osProfissional)ordens[k].profissional=osD.osProfissional;
+        ordens[k].osObs=osD.osObs;
+        oid=editandoOSId;
+        break;
+      }
+    }
+  }else if(modoOS==='criar_para_ordem'&&editandoOSId){
+    for(var m=0;m<ordens.length;m++){
+      if(ordens[m].id===editandoOSId){
+        ordens[m].osNum=osD.osNum;
+        ordens[m].osProdutos=osD.osProdutos;
+        ordens[m].osMateriais=osD.osMateriais;
+        ordens[m].osDataInicio=osD.osDataInicio;
+        ordens[m].osDataBaixa=osD.osDataBaixa;
+        if(osD.osProfissional)ordens[m].profissional=osD.osProfissional;
+        ordens[m].osObs=osD.osObs;
+        oid=editandoOSId;
+        break;
+      }
+    }
+    proximaOS++;
+  }else{
+    var ord={
+      id:proximoId++,
+      cliente:cl,
+      produto:nms.join(' + '),
+      quantidade:tq,
+      situacao:situacaoSelecionada,
+      profissional:document.getElementById('osProfissional').value,
+      observacao:document.getElementById('osObs').value,
+      osNum:osD.osNum,
+      osProdutos:osD.osProdutos,
+      osMateriais:osD.osMateriais,
+      osDataInicio:osD.osDataInicio,
+      osDataBaixa:osD.osDataBaixa,
+      osObs:osD.osObs
+    };
+    ordens.push(ord);
+    oid=ord.id;
+    proximaOS++;
+  }
+  
+  salvarDados(function(){
+    fecharModalOS();
+    fecharModalEdit();
+    popularSelects();
+    renderizar();
+    setTimeout(function(){verOS(oid);},300);
+  });
+}
+
+// === MODAL EDITAR ===
+function abrirEdicao(id){
+  var o=null;
+  for(var i=0;i<ordens.length;i++){if(ordens[i].id===id){o=ordens[i];break;}}
+  if(!o)return;
+  
+  editandoId=id;
+  document.getElementById('editCliente').value=o.cliente||'';
+  document.getElementById('editProduto').value=o.produto||'';
+  document.getElementById('editQtd').value=o.quantidade||1;
+  document.getElementById('editSituacao').value=o.situacao||'A PRODUZIR';
+  document.getElementById('editFech').value=o.dataFechamento||'';
+  document.getElementById('editProf').value=o.profissional||'';
+  document.getElementById('editEntProd').value=o.entradaProd||'';
+  document.getElementById('editSaiProd').value=o.saidaProd||'';
+  document.getElementById('editEntPint').value=o.entradaPint||'';
+  document.getElementById('editSaiPint').value=o.saidaPint||'';
+  document.getElementById('editEntInst').value=o.entradaInst||'';
+  document.getElementById('editSaiInst').value=o.saidaInst||'';
+  document.getElementById('editObs').value=o.observacao||'';
+  
+  calcularDiasProd();
+  calcularDiasInst();
+  
+  if(o.osNum){
+    document.getElementById('editOSInfo').classList.remove('hidden');
+    document.getElementById('editNoOS').classList.add('hidden');
+    document.getElementById('editOSNum').textContent=o.osNum;
+  }else{
+    document.getElementById('editOSInfo').classList.add('hidden');
+    document.getElementById('editNoOS').classList.remove('hidden');
+  }
+  
+  document.getElementById('modalEdit').classList.remove('hidden');
+}
+
+function fecharModalEdit(){document.getElementById('modalEdit').classList.add('hidden');}
+
+function salvarEdicao(){
+  for(var i=0;i<ordens.length;i++){
+    if(ordens[i].id===editandoId){
+      ordens[i].cliente=document.getElementById('editCliente').value.trim();
+      ordens[i].produto=document.getElementById('editProduto').value.trim();
+      ordens[i].quantidade=parseInt(document.getElementById('editQtd').value)||1;
+      ordens[i].situacao=document.getElementById('editSituacao').value;
+      ordens[i].dataFechamento=document.getElementById('editFech').value.trim();
+      ordens[i].profissional=document.getElementById('editProf').value.trim();
+      ordens[i].entradaProd=document.getElementById('editEntProd').value.trim();
+      ordens[i].saidaProd=document.getElementById('editSaiProd').value.trim();
+      ordens[i].entradaPint=document.getElementById('editEntPint').value.trim();
+      ordens[i].saidaPint=document.getElementById('editSaiPint').value.trim();
+      ordens[i].entradaInst=document.getElementById('editEntInst').value.trim();
+      ordens[i].saidaInst=document.getElementById('editSaiInst').value.trim();
+      ordens[i].observacao=document.getElementById('editObs').value.trim();
+      break;
+    }
+  }
+  salvarDados(function(){
+    fecharModalEdit();
+    popularSelects();
+    renderizar();
+  });
+}
+
+function excluirOrdem(){
+  if(!confirm('Excluir esta ordem?'))return;
+  ordens=ordens.filter(function(o){return o.id!==editandoId;});
+  salvarDados(function(){
+    fecharModalEdit();
+    popularSelects();
+    renderizar();
+  });
+}
+
+function verOSdoEdit(){fecharModalEdit();verOS(editandoId);}
+
+function editarOSdaOrdem(){
+  var o=null;
+  for(var i=0;i<ordens.length;i++){if(ordens[i].id===editandoId){o=ordens[i];break;}}
+  if(!o||!o.osNum)return;
+  
+  fecharModalEdit();
+  modoOS='editar';
+  editandoOSId=editandoId;
+  
+  document.getElementById('modalOSTitle').textContent='✏️ Editar OS: '+o.osNum;
+  document.getElementById('osNumero').value=o.osNum;
+  document.getElementById('osCliente').value=o.cliente||'';
+  document.getElementById('osSituacao').value=o.situacao||'A PRODUZIR';
+  document.getElementById('osDataInicio').value=o.osDataInicio||'';
+  document.getElementById('osDataBaixa').value=o.osDataBaixa||'';
+  document.getElementById('osProfissional').value=o.profissional||'';
+  document.getElementById('osObs').value=o.osObs||'';
+  
+  document.getElementById('produtosLista').innerHTML='';
+  document.getElementById('materiaisLista').innerHTML='';
+  
+  var pr=o.osProdutos||[{descricao:o.produto,qtd:o.quantidade}];
+  for(var p=0;p<pr.length;p++){addProduto(pr[p].descricao,pr[p].qtd);}
+  
+  var mt=o.osMateriais||[];
+  if(mt.length>0){for(var m=0;m<mt.length;m++){addMaterial(mt[m].material,mt[m].qtd,mt[m].unidade);}}
+  else{addMaterial();}
+  
+  atualizarTotalProdutos();
+  document.getElementById('modalOS').classList.remove('hidden');
+}
+
+function criarOSparaOrdem(){
+  var o=null;
+  for(var i=0;i<ordens.length;i++){if(ordens[i].id===editandoId){o=ordens[i];break;}}
+  if(!o)return;
+  
+  fecharModalEdit();
+  modoOS='criar_para_ordem';
+  editandoOSId=editandoId;
+  
+  document.getElementById('modalOSTitle').textContent='📝 Criar OS para Ordem Existente';
+  document.getElementById('osNumero').value='OS-'+String(proximaOS).padStart(4,'0');
+  document.getElementById('osCliente').value=o.cliente||'';
+  document.getElementById('osSituacao').value=o.situacao||'A PRODUZIR';
+  document.getElementById('osDataInicio').value='';
+  document.getElementById('osDataBaixa').value='';
+  document.getElementById('osProfissional').value=o.profissional||'';
+  document.getElementById('osObs').value=o.observacao||'';
+  
+  document.getElementById('produtosLista').innerHTML='';
+  document.getElementById('materiaisLista').innerHTML='';
+  addProduto(o.produto,o.quantidade);
+  addMaterial();
+  
+  atualizarTotalProdutos();
+  document.getElementById('modalOS').classList.remove('hidden');
+}
+
+// === VER/IMPRIMIR OS ===
+function verOS(id){
+  var o=null;
+  for(var i=0;i<ordens.length;i++){if(ordens[i].id===id){o=ordens[i];break;}}
+  if(!o||!o.osNum){alert('OS não encontrada!');return;}
+  
+  var pr=o.osProdutos||[{descricao:o.produto,qtd:o.quantidade}];
+  var mt=o.osMateriais||[];
+  var ph='',pt=0;
+  
+  for(var p=0;p<pr.length;p++){
+    var q=parseInt(pr[p].qtd)||0;
+    pt+=q;
+    ph+='<tr><td style="font-weight:600">'+esc(pr[p].descricao)+'</td><td style="text-align:center;font-weight:700">'+pr[p].qtd+'</td></tr>';
+  }
+  ph+='<tr style="background:#f0fdf4"><td style="text-align:right;font-weight:700;color:#16a34a">TOTAL</td><td style="text-align:center;font-weight:900;font-size:16px;color:#16a34a">'+pt+'</td></tr>';
+  
+  var mh='';
+  if(mt.length>0){
+    for(var m=0;m<mt.length;m++){
+      mh+='<tr><td>'+esc(mt[m].material)+'</td><td style="text-align:center;font-weight:600">'+esc(mt[m].qtd)+'</td><td style="text-align:center">'+esc(mt[m].unidade)+'</td></tr>';
+    }
+  }else{
+    mh='<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px">Nenhum material cadastrado</td></tr>';
+  }
+  
+  var di=o.osDataInicio||'____/____/________';
+  var db=o.osDataBaixa||'____/____/________';
+  var pf=o.profissional||'________________________';
+  var hj=new Date().toLocaleDateString('pt-BR');
+  
+  var h='<div class="print-header"><div><div style="font-size:12px;color:#64748b;font-weight:600">ORDEM DE SERVIÇO</div><div class="print-num">'+esc(o.osNum)+'</div></div><div style="text-align:right"><div style="font-size:11px;color:#94a3b8">Emissão</div><div style="font-size:14px;font-weight:600">'+hj+'</div></div></div>';
+  h+='<dl class="print-info"><div><dt>Cliente</dt><dd style="font-size:18px">'+esc(o.cliente)+'</dd></div><div><dt>Profissional</dt><dd>'+esc(pf)+'</dd></div><div><dt>Data de Início</dt><dd>'+di+'</dd></div><div><dt>Data da Baixa</dt><dd>'+db+'</dd></div></dl>';
+  h+='<h3 style="font-size:14px;font-weight:700;margin:20px 0 8px">📦 Produtos</h3><table class="print-table"><thead><tr><th>Descrição do Produto</th><th style="width:100px;text-align:center">Quantidade</th></tr></thead><tbody>'+ph+'</tbody></table>';
+  h+='<h3 style="font-size:14px;font-weight:700;margin:24px 0 8px">🧱 Lista de Materiais</h3><table class="print-table"><thead><tr><th>Material</th><th style="width:80px;text-align:center">Qtd</th><th style="width:80px;text-align:center">Un</th></tr></thead><tbody>'+mh+'</tbody></table>';
+  if(o.osObs){h+='<div class="print-obs"><strong>📝 Observações:</strong> '+esc(o.osObs)+'</div>';}
+  h+='<div class="print-sig"><div class="print-sig-line">Responsável da Produção</div><div class="print-sig-line">Conferência / Qualidade</div></div>';
+  
+  document.getElementById('printArea').innerHTML=h;
+  document.getElementById('modalPrint').classList.remove('hidden');
+}
+
+function fecharPrint(){document.getElementById('modalPrint').classList.add('hidden');}
+
+function imprimirOS(){
+  var c=document.getElementById('printArea').innerHTML;
+  var w=window.open('','_blank');
+  if(!w){alert('Popup bloqueado!');return;}
+  var h='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>OS</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#333;max-width:800px;margin:0 auto}.print-header{display:flex;justify-content:space-between;border-bottom:2px solid #1e293b;padding-bottom:16px;margin-bottom:20px}.print-num{font-size:28px;font-weight:900}.print-info{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:24px}.print-info dt{font-size:11px;color:#666;text-transform:uppercase}.print-info dd{font-size:14px;font-weight:600;margin:0 0 10px}.print-table{width:100%;border-collapse:collapse;margin:12px 0 20px}.print-table th{background:#f5f5f5;padding:10px 12px;text-align:left;border:1px solid #ddd;font-size:11px;text-transform:uppercase}.print-table td{padding:10px 12px;border:1px solid #ddd}.print-obs{background:#fffbeb;border:1px solid #fcd34d;padding:14px;border-radius:8px;margin-top:20px}.print-sig{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:50px}.print-sig-line{border-top:1px solid #1e293b;padding-top:8px;text-align:center;font-size:11px;color:#666}@page{margin:15mm}</style></head><body>'+c+'</body></html>';
+  w.document.write(h);
+  w.document.close();
+  w.onload=function(){setTimeout(function(){w.print();},300);};
+}
+
+function exportarCSV(){
+  var l=['Cliente;Produto;Qtd;Situação;OS;Fechamento;Ent.Prod;Sai.Prod;Ent.Pint;Sai.Pint;Ent.Inst;Sai.Inst;Profissional;Observação'];
+  for(var i=0;i<ordens.length;i++){
+    var o=ordens[i];
+    l.push([o.cliente,o.produto,o.quantidade,o.situacao,o.osNum||'',o.dataFechamento||'',o.entradaProd||'',o.saidaProd||'',o.entradaPint||'',o.saidaPint||'',o.entradaInst||'',o.saidaInst||'',o.profissional||'',o.observacao||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"';}).join(';'));
+  }
+  var csv='\uFEFF'+l.join('\n');
+  var b=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='producao_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+init();
+</script>
+</body>
+</html>
